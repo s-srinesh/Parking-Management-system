@@ -66,42 +66,19 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          script_stop: true
+          script_stop: false
           envs: MONGO_USERNAME,MONGO_PASSWORD,GH_TOKEN
           script: |
             echo "================================================="
             echo "🚀 Starting Deployment on EC2 Instance"
             echo "================================================="
 
-            export DEBIAN_FRONTEND=noninteractive
-            export NEEDRESTART_MODE=a
-
             APP_DIR="parking-management-system"
 
-            # 1. Ensure Git is installed
-            if ! command -v git &> /dev/null; then
-              echo "Installing Git..."
-              sudo apt-get update -y && sudo apt-get install -y git
-            fi
+            # 1. Start Docker service
+            sudo systemctl start docker
 
-            # 2. Ensure Docker and Docker Compose are installed and running
-            if ! command -v docker &> /dev/null; then
-              echo "Installing Docker..."
-              sudo apt-get update -y
-              sudo apt-get install -y ca-certificates curl gnupg
-              sudo install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
-              sudo chmod a+r /etc/apt/keyrings/docker.gpg
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              sudo apt-get update -y
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
-              sudo usermod -aG docker $USER
-            fi
-
-            sudo systemctl enable docker || true
-            sudo systemctl start docker || true
-
-            # 3. Clone or Pull the latest code (supports both public and private repos)
+            # 2. Clone or Pull the latest code
             if [ -d "$APP_DIR" ]; then
               echo "📁 Repository exists. Pulling latest code..."
               cd "$APP_DIR"
@@ -113,7 +90,7 @@ jobs:
               cd "$APP_DIR"
             fi
 
-            # 4. Generate/Update the .env file securely from GitHub Secrets
+            # 3. Generate .env file securely from GitHub Secrets
             echo "🔐 Generating .env file from GitHub Secrets..."
             cat <<EOF > .env
             MONGO_USERNAME=${MONGO_USERNAME}
@@ -121,16 +98,16 @@ jobs:
             PORT=5000
             EOF
 
-            # 5. Build and launch containers using Docker Compose
+            # 4. Build and launch containers using Docker Compose
             echo "🐳 Rebuilding and starting Docker containers..."
-            sudo docker compose down --remove-orphans || true
+            sudo docker compose down --remove-orphans
             sudo docker compose up -d --build
 
-            # 6. Clean up dangling images to save EC2 disk space
+            # 5. Clean up dangling images to save EC2 disk space
             echo "🧹 Cleaning up unused Docker images..."
             sudo docker image prune -f
 
-            # 7. Check container status
+            # 6. Check container status
             echo "📊 Current Running Containers:"
             sudo docker compose ps
 
