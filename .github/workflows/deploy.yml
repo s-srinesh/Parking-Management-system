@@ -6,7 +6,10 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch: # Allows manual trigger from GitHub UI for testing
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   # ==========================================================
@@ -57,41 +60,48 @@ jobs:
         env:
           MONGO_USERNAME: ${{ secrets.MONGO_USERNAME || 'admin' }}
           MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD || 'secretpassword123' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script_stop: true
-          envs: MONGO_USERNAME,MONGO_PASSWORD
+          envs: MONGO_USERNAME,MONGO_PASSWORD,GH_TOKEN
           script: |
             echo "================================================="
             echo "🚀 Starting Deployment on EC2 Instance"
             echo "================================================="
 
+            export DEBIAN_FRONTEND=noninteractive
+            export NEEDRESTART_MODE=a
+
             APP_DIR="parking-management-system"
 
-            # 1. Check if Git is installed
+            # 1. Ensure Git is installed
             if ! command -v git &> /dev/null; then
               echo "Installing Git..."
               sudo apt-get update -y && sudo apt-get install -y git
             fi
 
-            # 2. Check if Docker and Docker Compose are installed
+            # 2. Ensure Docker and Docker Compose are installed and running
             if ! command -v docker &> /dev/null; then
               echo "Installing Docker..."
               sudo apt-get update -y
               sudo apt-get install -y ca-certificates curl gnupg
               sudo install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
               sudo chmod a+r /etc/apt/keyrings/docker.gpg
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
               sudo apt-get update -y
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
               sudo usermod -aG docker $USER
             fi
 
-            # 3. Clone or Pull the latest code
+            sudo systemctl enable docker || true
+            sudo systemctl start docker || true
+
+            # 3. Clone or Pull the latest code (supports both public and private repos)
             if [ -d "$APP_DIR" ]; then
               echo "📁 Repository exists. Pulling latest code..."
               cd "$APP_DIR"
@@ -99,7 +109,7 @@ jobs:
               git reset --hard origin/main || git reset --hard origin/master
             else
               echo "📁 Repository not found. Cloning repository..."
-              git clone "https://github.com/${{ github.repository }}.git" "$APP_DIR"
+              git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "$APP_DIR"
               cd "$APP_DIR"
             fi
 
