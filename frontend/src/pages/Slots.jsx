@@ -9,18 +9,27 @@ const Slots = () => {
     const handleaddSlot = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('/api/slots/initialize', {slotNumber});
+            const count = parseInt(slotNumber, 10);
+            if (isNaN(count) || count <= 0) {
+                setError('Please enter a valid number of slots');
+                return;
+            }
+            const response = await axios.post('/api/slots/initialize', {
+                slotCount: count,
+                slotNumber: count
+            });
             setMessage(
                 <div
                   className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
                   role="alert"
                 >
-                  <span className="font-medium">Success!</span> Slots added successfully!.
+                  <span className="font-medium">Success!</span> {count} slots created successfully!
                 </div>
               );
             setError('');
+            setSlotNumber('');
         } catch (error) {
-            setError('Error initializing slot');
+            setError(error.response?.data?.message || 'Error initializing slots');
         }
     };
 

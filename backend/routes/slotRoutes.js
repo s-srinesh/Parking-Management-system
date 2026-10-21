@@ -3,19 +3,23 @@ const router = express.Router();
 const Slot = require('../models/slotModel');
 const Vehicle = require('../models/vehicleModel');
 router.post('/initialize', async (req, res) => {
-    const { slotCount } = req.body;
-    console.log(slotCount)
-    if (!slotCount) {
-        return res.status(400).json({ message: 'Slot count is required' });
+    const rawCount = req.body.slotCount || req.body.slotNumber;
+    const slotCount = parseInt(rawCount, 10);
+    console.log('Initializing slots count:', slotCount);
+    if (!slotCount || isNaN(slotCount) || slotCount <= 0) {
+        return res.status(400).json({ message: 'Valid slot count number is required' });
     }
     try {
         for (let i = 1; i <= slotCount; i++) {
-            const slot = new Slot({ slotNumber: i });
-            await slot.save();
+            const exists = await Slot.findOne({ slotNumber: i });
+            if (!exists) {
+                const slot = new Slot({ slotNumber: i });
+                await slot.save();
+            }
         }
-        res.status(201).json({ message: 'Slots initialized' });
+        res.status(201).json({ message: `${slotCount} slots initialized successfully` });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error });
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 });
 
