@@ -10,7 +10,8 @@ function CheckIn  () {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:5000/api/vehicles', { vehicleNumber });
+            const response = await axios.post('/api/vehicles', { vehicleNumber });
+            console.log(response);
             setMessage(
                 <div
                   className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"

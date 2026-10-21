@@ -3,6 +3,7 @@ import CheckIn from './CheckIn';
 import CheckOut from './CheckOut';
 import SlotStatus from './SlotStatus';
 import FindVehicleSlot from './FindVehicleSlot';
+import Slots from './Slots';
 
 const Home = () => {
     const [view, setView] = useState('home');
@@ -36,12 +37,19 @@ const Home = () => {
                     >
                         Find Vehicle Slot
                     </button>
+                    <button 
+                        onClick={() => setView('slots')} 
+                        className="m-2 px-6 py-3 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+                    >
+                        Slots Available
+                    </button>
                 </div>
             )}
             {view === 'checkin' && <CheckIn />}
             {view === 'checkout' && <CheckOut />}
             {view === 'status' && <SlotStatus />}
             {view === 'find' && <FindVehicleSlot />}
+            {view === 'slots' && <Slots />}
             {view !== 'home' && (
                 <button 
                     onClick={() => setView('home')} 

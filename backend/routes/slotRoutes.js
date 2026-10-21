@@ -4,6 +4,7 @@ const Slot = require('../models/slotModel');
 const Vehicle = require('../models/vehicleModel');
 router.post('/initialize', async (req, res) => {
     const { slotCount } = req.body;
+    console.log(slotCount)
     if (!slotCount) {
         return res.status(400).json({ message: 'Slot count is required' });
     }

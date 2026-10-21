@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # ==========================================================
+  # 1. FRONTEND + REVERSE PROXY (EXPOSED TO PUBLIC INTERNET)
+  # ==========================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: parking-frontend
+    restart: unless-stopped
+    ports:
+      # ONLY port 80 is published to the EC2 host and the public internet
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - app-network
+
+  # ==========================================================
+  # 2. BACKEND API (PRIVATE - NOT EXPOSED TO INTERNET)
+  # ==========================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: parking-backend
+    restart: unless-stopped
+    # NOTICE: No 'ports' mapped to host! Only internal 'expose'
+    expose:
+      - "5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-secretpassword123}@mongo:27017/parking?authSource=admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # ==========================================================
+  # 3. MONGODB DATABASE (PRIVATE - SAVES AWS RDS COSTS)
+  # ==========================================================
+  mongo:
+    image: mongo:7.0
+    container_name: parking-mongodb
+    restart: unless-stopped
+    # NOTICE: No 'ports' mapped to host! Only internal 'expose'
+    expose:
+      - "27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-secretpassword123}
+      MONGO_INITDB_DATABASE: parking
+    volumes:
+      # Persistent volume ensures database data is NEVER lost during redeployments
+      - mongo-data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# Dedicated internal network for container-to-container communication
+networks:
+  app-network:
+    driver: bridge
+
+# Persistent disk storage for MongoDB database
+volumes:
+  mongo-data:
+    driver: local

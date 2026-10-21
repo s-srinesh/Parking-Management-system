@@ -8,7 +8,7 @@ const FindVehicleSlot = () => {
 
     const handleFind = async () => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/slots/find/${vehicleNumber}`);
+            const response = await axios.get(`/api/slots/find/${vehicleNumber}`);
             setSlot(response.data.slotNumber);
             setError('');
         } catch (error) {

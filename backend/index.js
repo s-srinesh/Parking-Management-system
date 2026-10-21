@@ -13,11 +13,18 @@ app.use(express.json());
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/slots', slotRoutes);
 
-mongoose.connect('mongodb://localhost:27017/parking', {
+// Health check endpoint for monitoring & CI/CD
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/parking';
+
+mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
-    console.log('Connected to MongoDB');
+    console.log(`Connected to MongoDB at ${mongoURI}`);
 }).catch(err => {
     console.log('Failed to connect to MongoDB', err);
 });

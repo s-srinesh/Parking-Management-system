@@ -7,7 +7,7 @@ const SlotStatus = () => {
 
     const fetchStatus = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/slots/status');
+            const response = await axios.get('/api/slots/status');
             setStatus(response.data);
             setError('');
         } catch (error) {

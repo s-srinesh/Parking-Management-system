@@ -10,6 +10,8 @@ const slotSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+      vehicleNumber: { type: String, default: null }
+
 });
 
 const Slot = mongoose.model('Slot', slotSchema);

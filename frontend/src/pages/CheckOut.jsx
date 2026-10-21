@@ -11,7 +11,7 @@ const CheckOut = () => {
     e.preventDefault();
     try {
       const response = await axios.patch(
-        "http://localhost:5000/api/vehicles/checkout",
+        "/api/vehicles/checkout",
         { vehicleNumber }
       );
       if (response.data) {
